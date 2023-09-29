@@ -84,7 +84,7 @@ class LoginPage extends StatelessWidget {
                   // sign in button
                   Button(
                     text: 'Sign In',
-                    onTap: signUserIn,
+                    onPressed: signUserIn,
                   ),
             
                   const SizedBox(height: 50),
@@ -121,12 +121,11 @@ class LoginPage extends StatelessWidget {
                   const Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      // google button
+                      
                       SquareTile(imagePath: 'assets/images/google.png'),
             
                       SizedBox(width: 25),
-            
-                      // facebook button
+                      
                       SquareTile(imagePath: 'assets/images/facebook.png')
                     ],
                   ),

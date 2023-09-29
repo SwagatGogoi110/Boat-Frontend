@@ -1,12 +1,17 @@
 // ignore_for_file: library_private_types_in_public_api, unused_field
 
+import 'dart:convert';
+
 import 'package:animate_do/animate_do.dart';
+import 'package:boatbook/screens/home_screen.dart';
 import 'package:flutter/material.dart';
 import 'dart:async';
+import 'package:http/http.dart' as http;
 import 'package:flutter_verification_code/flutter_verification_code.dart';
 
 class Verificatoin extends StatefulWidget {
-  const Verificatoin({Key? key}) : super(key: key);
+  final int userId;
+  const Verificatoin({Key? key, required this.userId}) : super(key: key);
 
   @override
   _VerificatoinState createState() => _VerificatoinState();
@@ -46,14 +51,57 @@ class _VerificatoinState extends State<Verificatoin> {
     setState(() {
       _isLoading = true;
     });
+    print("verify function called");
+    print(_code);
+    print(widget.userId);
 
-    const oneSec = Duration(milliseconds: 2000);
-    _timer = Timer.periodic(oneSec, (timer) {
-      setState(() {
-        _isLoading = false;
-        _isVerified = true;
+    verifyOtpOnServer(widget.userId, _code).then((bool isOtpValid) {
+      const oneSec = Duration(milliseconds: 2000);
+      _timer = Timer.periodic(oneSec, (timer) {
+        setState(() {
+          _isLoading = false;
+          if (isOtpValid) {
+            print("it is true");
+            _isVerified = true;
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(
+                builder: (context) => const HomeScreen(),
+              ),
+            );
+          }
+        });
       });
     });
+  }
+
+  Future<bool> verifyOtpOnServer(int userId, String enteredOtp) async {
+    const url = 'http://192.168.1.4:8080/api/v1/users/otp/verify';
+
+    String userId = widget.userId.toString();
+    print(userId);
+    print(enteredOtp);
+
+    final response = await http.post(
+      Uri.parse(url),
+      body: jsonEncode({
+        'userId': userId,
+        'enteredOtp': enteredOtp,
+      }),
+      headers: {'Content-Type': 'application/json'},
+    );
+    print(response.statusCode);
+    print('Request Body: ${jsonEncode({
+          'userId': widget.userId.toString(),
+          'enteredOtp': enteredOtp
+        })}');
+
+    if (response.statusCode == 200) {
+      print("T");
+      return true;
+    } else {
+      print("F");
+      return false;
+    }
   }
 
   @override
@@ -122,7 +170,8 @@ class _VerificatoinState extends State<Verificatoin> {
                     duration: const Duration(milliseconds: 500),
                     child: VerificationCode(
                       length: 4,
-                      textStyle: const TextStyle(fontSize: 20, color: Colors.black),
+                      textStyle:
+                          const TextStyle(fontSize: 20, color: Colors.black),
                       underlineColor: Colors.black,
                       keyboardType: TextInputType.number,
                       underlineUnfocusedColor: Colors.black,

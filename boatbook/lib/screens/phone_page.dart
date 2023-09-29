@@ -1,11 +1,14 @@
+import 'dart:convert';
 import 'package:animate_do/animate_do.dart';
 import 'package:boatbook/utilities/verification.dart';
-
+import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'package:intl_phone_number_input/intl_phone_number_input.dart';
 
 class RegisterWithPhoneNumber extends StatefulWidget {
-  const RegisterWithPhoneNumber({Key? key}) : super(key: key);
+  final int userId;
+  const RegisterWithPhoneNumber({Key? key, required this.userId})
+      : super(key: key);
 
   @override
   _RegisterWithPhoneNumberState createState() =>
@@ -15,7 +18,7 @@ class RegisterWithPhoneNumber extends StatefulWidget {
 class _RegisterWithPhoneNumberState extends State<RegisterWithPhoneNumber> {
   final TextEditingController controller = TextEditingController();
   bool _isLoading = false;
-
+  String userId = '';
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -64,7 +67,8 @@ class _RegisterWithPhoneNumberState extends State<RegisterWithPhoneNumber> {
                 FadeInDown(
                   delay: const Duration(milliseconds: 400),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(vertical: 5, horizontal: 15),
+                    padding:
+                        const EdgeInsets.symmetric(vertical: 5, horizontal: 15),
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(8),
@@ -91,7 +95,8 @@ class _RegisterWithPhoneNumberState extends State<RegisterWithPhoneNumber> {
                           ),
                           ignoreBlank: false,
                           autoValidateMode: AutovalidateMode.disabled,
-                          selectorTextStyle: const TextStyle(color: Colors.black),
+                          selectorTextStyle:
+                              const TextStyle(color: Colors.black),
                           textFieldController: controller,
                           formatInput: false,
                           maxLength: 10,
@@ -106,6 +111,8 @@ class _RegisterWithPhoneNumberState extends State<RegisterWithPhoneNumber> {
                             hintStyle: TextStyle(
                                 color: Colors.grey.shade500, fontSize: 16),
                           ),
+                          initialValue:
+                              PhoneNumber(dialCode: '+91', isoCode: 'IN'),
                           onSaved: (PhoneNumber number) {
                             print('On Saved: $number');
                           },
@@ -131,25 +138,46 @@ class _RegisterWithPhoneNumberState extends State<RegisterWithPhoneNumber> {
                   delay: const Duration(milliseconds: 600),
                   child: MaterialButton(
                     minWidth: double.infinity,
-                    onPressed: () {
+                    onPressed: () async {
                       setState(() {
                         _isLoading = true;
                       });
+                      print(widget.userId);
+                      String phoneNumber = controller.text;
+                      String countryCode = "+91";
+                      String fullPhoneNumber = countryCode + phoneNumber;
+                      String url =
+                          "http://192.168.1.4:8080/api/v1/users/signup2";
 
-                      Future.delayed(const Duration(seconds: 2), () {
-                        setState(() {
-                          _isLoading = false;
+                      Map<String, dynamic> requestBody = {
+                        "user_id": widget.userId,
+                        "userPhone": fullPhoneNumber,
+                      };
+
+                      var response = await http.post(Uri.parse(url),
+                          headers: {'Content-Type': 'application/json'},
+                          body: jsonEncode(requestBody));
+
+                      print(response.statusCode);
+                      print(response.body);
+                      if (response.statusCode == 200) {
+                        Future.delayed(const Duration(seconds: 2), () {
+                          setState(() {
+                            _isLoading = false;
+                          });
+                          Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (context) =>
+                                      Verificatoin(userId: widget.userId)));
                         });
-                        Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (context) => const Verificatoin()));
-                      });
+                      }
                     },
                     color: Colors.black,
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(5)),
-                    padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 30),
+                    padding: const EdgeInsets.symmetric(
+                        vertical: 15, horizontal: 30),
                     child: _isLoading
                         ? const SizedBox(
                             width: 20,
