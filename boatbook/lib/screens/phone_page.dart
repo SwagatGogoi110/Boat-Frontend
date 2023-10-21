@@ -1,9 +1,12 @@
 import 'dart:convert';
 import 'package:animate_do/animate_do.dart';
+import 'package:boatbook/providers/AuthProvider.dart';
+import 'package:boatbook/screens/signin_page.dart';
 import 'package:boatbook/utilities/verification.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'package:intl_phone_number_input/intl_phone_number_input.dart';
+import 'package:provider/provider.dart';
 
 class RegisterWithPhoneNumber extends StatefulWidget {
   final int userId;
@@ -19,8 +22,14 @@ class _RegisterWithPhoneNumberState extends State<RegisterWithPhoneNumber> {
   final TextEditingController controller = TextEditingController();
   bool _isLoading = false;
   String userId = '';
+
   @override
   Widget build(BuildContext context) {
+    final authProvider = Provider.of<AuthProvider>(context);
+    final jwtToken = authProvider.jwtToken;
+
+    print('JWT Token: $jwtToken');
+
     return Scaffold(
         backgroundColor: Colors.white,
         body: SingleChildScrollView(
@@ -143,11 +152,12 @@ class _RegisterWithPhoneNumberState extends State<RegisterWithPhoneNumber> {
                         _isLoading = true;
                       });
                       print(widget.userId);
+                      print(jwtToken);
                       String phoneNumber = controller.text;
                       String countryCode = "+91";
                       String fullPhoneNumber = countryCode + phoneNumber;
                       String url =
-                          "http://192.168.1.4:8080/api/v1/users/signup2";
+                          "http://192.168.1.5:8080/api/v1/auth/signup2";
 
                       Map<String, dynamic> requestBody = {
                         "user_id": widget.userId,
@@ -155,7 +165,10 @@ class _RegisterWithPhoneNumberState extends State<RegisterWithPhoneNumber> {
                       };
 
                       var response = await http.post(Uri.parse(url),
-                          headers: {'Content-Type': 'application/json'},
+                          headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': 'Bearer $jwtToken'
+                          },
                           body: jsonEncode(requestBody));
 
                       print(response.statusCode);
@@ -169,7 +182,7 @@ class _RegisterWithPhoneNumberState extends State<RegisterWithPhoneNumber> {
                               context,
                               MaterialPageRoute(
                                   builder: (context) =>
-                                      Verificatoin(userId: widget.userId)));
+                                      Verification(userId: widget.userId)));
                         });
                       }
                     },
@@ -211,11 +224,12 @@ class _RegisterWithPhoneNumberState extends State<RegisterWithPhoneNumber> {
                       ),
                       InkWell(
                         onTap: () {
-                          Navigator.of(context).pushReplacementNamed('');
+                          Navigator.of(context).push(MaterialPageRoute(
+                              builder: (context) => LoginPage()));
                         },
                         child: const Text(
                           'Login',
-                          style: TextStyle(color: Colors.black),
+                          style: TextStyle(color: Colors.blue),
                         ),
                       )
                     ],

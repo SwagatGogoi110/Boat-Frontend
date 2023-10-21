@@ -1,14 +1,16 @@
 // ignore_for_file: use_build_context_synchronously
 
 import 'dart:convert';
-import 'dart:ffi';
 
 import 'package:animate_do/animate_do.dart';
 import 'package:boatbook/components/button.dart';
 import 'package:boatbook/components/square_tile.dart';
 import 'package:boatbook/models/user.dart';
+import 'package:boatbook/providers/AuthProvider.dart';
 import 'package:boatbook/screens/phone_page.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
 import 'package:http/http.dart' as http;
 
 class SignUpPage extends StatefulWidget {
@@ -21,27 +23,39 @@ class SignUpPage extends StatefulWidget {
 class _SignUpPageState extends State<SignUpPage> {
   final _formKey = GlobalKey<FormState>();
 
-  User user = User("", "", "");
-  String url = "http://192.168.1.4:8080/api/v1/users/signup1";
+  bool _isLoading = false;
 
-  Future save() async {
+  User user = User("", "", "", "");
+  String url = "http://192.168.1.5:8080/api/v1/auth/register";
+
+  Future<void> save() async {
+    setState(() {
+      _isLoading = true;
+    });
     var res = await http.post(Uri.parse(url),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
-          'userName': user.name,
-          'userEmail': user.email,
-          'userPassword': user.password
+          'firstname': user.fname,
+          'lastname': user.lname,
+          'email': user.email,
+          'password': user.password
         }));
 
     print(res.body);
     print(res.statusCode);
     // ignore: unnecessary_null_comparison
     if (res.statusCode == 200) {
+      final Map<String, dynamic> jsonResponse = jsonDecode(res.body);
       print("Inside res loop");
-      final String? userIdString = res.body;
-      if (userIdString != null) {
+      final int userId = jsonResponse['userId'];
+      final String? jwtToken = jsonResponse['token'];
+
+      print(jwtToken);
+
+      if (jwtToken != null) {
         print("inside userIdString loop");
-        final int userId = int.tryParse(userIdString) ?? 0;
+        final authProvider = Provider.of<AuthProvider>(context, listen: false);
+        authProvider.setJwtToken(jwtToken);
         Navigator.push(
           context,
           MaterialPageRoute(
@@ -49,7 +63,13 @@ class _SignUpPageState extends State<SignUpPage> {
           ),
         );
       }
+    } else {
+      print("Registration failed with status: ${res.statusCode}");
     }
+
+    setState(() {
+      _isLoading = false;
+    });
   }
 
   @override
@@ -82,14 +102,14 @@ class _SignUpPageState extends State<SignUpPage> {
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 25),
                       child: TextFormField(
-                        controller: TextEditingController(text: user.name),
+                        controller: TextEditingController(text: user.fname),
                         obscureText: false,
                         onChanged: (val) {
-                          user.name = val;
+                          user.fname = val;
                         },
                         validator: (value) {
                           if (value!.isEmpty) {
-                            return 'User Name is Empty';
+                            return 'User First Name is Empty';
                           }
                           return null;
                         },
@@ -103,7 +123,39 @@ class _SignUpPageState extends State<SignUpPage> {
                           ),
                           fillColor: Colors.white,
                           filled: true,
-                          hintText: 'UserName',
+                          hintText: 'First Name',
+                          hintStyle: TextStyle(color: Colors.grey.shade500),
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 10),
+
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 25),
+                      child: TextFormField(
+                        controller: TextEditingController(text: user.lname),
+                        obscureText: false,
+                        onChanged: (val) {
+                          user.lname = val;
+                        },
+                        validator: (value) {
+                          if (value!.isEmpty) {
+                            return 'User Last Name is Empty';
+                          }
+                          return null;
+                        },
+                        decoration: InputDecoration(
+                          enabledBorder: OutlineInputBorder(
+                            borderSide: BorderSide(
+                                color: Colors.black.withOpacity(0.13)),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderSide: BorderSide(color: Colors.grey.shade400),
+                          ),
+                          fillColor: Colors.white,
+                          filled: true,
+                          hintText: 'Last Name',
                           hintStyle: TextStyle(color: Colors.grey.shade500),
                         ),
                       ),
@@ -176,9 +228,9 @@ class _SignUpPageState extends State<SignUpPage> {
 
                     const SizedBox(height: 25),
 
-                    // sign in button
+                    // sign up button
                     Button(
-                      text: 'Sign Up',
+                      text: _isLoading ? 'Signing up...' : 'Sign Up',
                       onPressed: () {
                         final FormState? formState = _formKey.currentState;
                         if (formState != null && formState.validate()) {

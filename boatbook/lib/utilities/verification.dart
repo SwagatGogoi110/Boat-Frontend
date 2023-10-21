@@ -3,26 +3,30 @@
 import 'dart:convert';
 
 import 'package:animate_do/animate_do.dart';
+import 'package:boatbook/providers/AuthProvider.dart';
 import 'package:boatbook/screens/home_screen.dart';
 import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:http/http.dart' as http;
 import 'package:flutter_verification_code/flutter_verification_code.dart';
+import 'package:provider/provider.dart';
 
-class Verificatoin extends StatefulWidget {
+class Verification extends StatefulWidget {
   final int userId;
-  const Verificatoin({Key? key, required this.userId}) : super(key: key);
+  const Verification({Key? key, required this.userId}) : super(key: key);
 
   @override
   _VerificatoinState createState() => _VerificatoinState();
 }
 
-class _VerificatoinState extends State<Verificatoin> {
+class _VerificatoinState extends State<Verification> {
   bool _isResendAgain = false;
   bool _isVerified = false;
   bool _isLoading = false;
 
   String _code = '';
+  String? jwtToken;
+  
 
   late Timer _timer;
   int _start = 60;
@@ -75,8 +79,12 @@ class _VerificatoinState extends State<Verificatoin> {
   }
 
   Future<bool> verifyOtpOnServer(int userId, String enteredOtp) async {
-    const url = 'http://192.168.1.4:8080/api/v1/users/otp/verify';
+    const url = 'http://192.168.1.5:8080/api/v1/auth/verify';
 
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final jwtToken = authProvider.jwtToken;
+
+    print('JWT Token: $jwtToken');
     String userId = widget.userId.toString();
     print(userId);
     print(enteredOtp);
@@ -87,7 +95,10 @@ class _VerificatoinState extends State<Verificatoin> {
         'userId': userId,
         'enteredOtp': enteredOtp,
       }),
-      headers: {'Content-Type': 'application/json'},
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $jwtToken',
+      },
     );
     print(response.statusCode);
     print('Request Body: ${jsonEncode({
@@ -119,6 +130,8 @@ class _VerificatoinState extends State<Verificatoin> {
 
   @override
   Widget build(BuildContext context) {
+    
+
     return Scaffold(
         backgroundColor: Colors.white,
         body: SingleChildScrollView(
@@ -152,7 +165,7 @@ class _VerificatoinState extends State<Verificatoin> {
                     delay: const Duration(milliseconds: 500),
                     duration: const Duration(milliseconds: 500),
                     child: Text(
-                      "Please enter the 4 digit code sent to \n +91 9999999999",
+                      "Please enter the 4 digit code sent to the mobile number",
                       textAlign: TextAlign.center,
                       style: TextStyle(
                           fontSize: 16,
